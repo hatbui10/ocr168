@@ -142,7 +142,6 @@
     }
 
     .reset-btn {
-      display: none;
       margin: 16px auto 0;
       padding: 10px 24px;
       background: linear-gradient(135deg, #6366f1, #4f46e5);
@@ -164,10 +163,6 @@
     .reset-btn:active {
       transform: translateY(0);
     }
-
-    .reset-btn.show {
-      display: block;
-    }
   </style>
 </head>
 <body>
@@ -177,7 +172,6 @@
       Nhập lần lượt 5 lần số 0 hoặc 1, sau đó hệ thống tự tính và hiển thị kết quả.
     </div>
 
-    <!-- Hàng 5 ô đang dịch trái -->
     <div class="row-label">Chuỗi đã nhập (dịch trái mỗi lần):</div>
     <div class="boxes-row">
       <input id="box1" class="box" type="text" readonly />
@@ -187,8 +181,7 @@
       <input id="box5" class="box" type="text" readonly />
     </div>
 
-    <!-- Hàng 5 ô kết quả -->
-    <div class="row-label">Kết quả sau khi đủ 5 lần nhập:</div>
+    <div class="row-label">Sử dụng dãy 5 bít :</div>
     <div class="boxes-row">
       <input id="r1" class="box result" type="text" readonly />
       <input id="r2" class="box result" type="text" readonly />
@@ -197,7 +190,6 @@
       <input id="r5" class="box result" type="text" readonly />
     </div>
 
-    <!-- Ô nhập thứ 6 -->
     <div class="input-section">
       <div class="input-label">Nhập từng số 0 hoặc 1 vào ô dưới (tổng cộng 5 lần):</div>
       <input
@@ -207,13 +199,12 @@
         pattern="[01]"
         maxlength="1"
         autocomplete="off"
-        placeholder="0 / 1"
+        "
       />
     </div>
 
     <div id="status" class="status"></div>
 
-    <!-- Nút Reset -->
     <button id="resetBtn" class="reset-btn">🔄 Nhập lại từ đầu</button>
   </div>
 
@@ -254,6 +245,18 @@
       }
     }
 
+    // Chuẩn bị cho chu kỳ mới - KHÔNG xóa 5 bit nhập và 5 ô kết quả
+    function prepareNextRound() {
+      current = ['', '', '', '', ''];
+      inputCount = 0;
+      locked = false;
+      inputBox.disabled = false;
+      inputBox.value = '';
+      statusEl.textContent = 'Nhập tiếp 5 bit cho chu kỳ mới…';
+      statusEl.className = 'status';
+      inputBox.focus();
+    }
+
     function resetAll() {
       current = ['', '', '', '', ''];
       inputCount = 0;
@@ -264,11 +267,9 @@
       renderResult('');
       statusEl.textContent = '';
       statusEl.className = 'status';
-      resetBtn.classList.remove('show');
       inputBox.focus();
     }
 
-    // Chặn phím không phải 0 hoặc 1
     inputBox.addEventListener('keydown', (e) => {
       if (locked) {
         e.preventDefault();
@@ -288,24 +289,26 @@
 
       const val = inputBox.value.trim();
 
-      // Chỉ chấp nhận 0 hoặc 1
       if (val !== '0' && val !== '1') {
         inputBox.value = '';
         return;
       }
 
-      // Ghi nhận 1 lần nhập hợp lệ
+      // Bit đầu tiên của chu kỳ mới → xóa 5 bit nhập cũ và 5 ô kết quả cũ
+      if (inputCount === 0) {
+        current = ['', '', '', '', ''];
+        renderDisplay();
+        renderResult('');
+      }
+
       inputCount++;
 
-      // Dịch trái mảng current (5 ô), rồi push giá trị mới vào cuối
       current.shift();
       current.push(val);
       renderDisplay();
 
-      // Xóa ô nhập cho lần tiếp theo
       inputBox.value = '';
 
-      // Nếu chưa đủ 5 lần thì tiếp tục cho nhập
       if (inputCount < 5) {
         statusEl.textContent = `Đã nhập ${inputCount}/5 lần. Tiếp tục nhập…`;
         statusEl.className = 'status';
@@ -313,33 +316,25 @@
         return;
       }
 
-      // Đủ 5 lần → khóa input, chờ 1s rồi tính tổng
       locked = true;
       inputBox.disabled = true;
       statusEl.textContent = 'Đủ 5 lần. Đang tính toán…';
       statusEl.className = 'status working';
 
       setTimeout(() => {
-        // Tính tổng số bit 1 trong 5 ô
         const sum = current.reduce((acc, v) => acc + (v === '1' ? 1 : 0), 0);
-
-        // Nếu tổng >= 3 → 00101, ngược lại → 11010
         const resultPattern = sum >= 3 ? '00101' : '11010';
         renderResult(resultPattern);
 
-        statusEl.textContent = `Hoàn tất. Tổng số bit 1 là ${sum}.`;
+        statusEl.textContent = `Hoàn tất. Tổng số bit 1 là ${sum}. Nhập tiếp 5 bit…`;
         statusEl.className = 'status done';
 
-        // Hiện nút Reset và tự động focus vào ô 6
-        resetBtn.classList.add('show');
-        inputBox.focus();
+        prepareNextRound();
       }, 1000);
     });
 
-    // Xử lý nút Reset
     resetBtn.addEventListener('click', resetAll);
 
-    // Khởi tạo khi load trang
     window.addEventListener('load', () => {
       renderDisplay();
       renderResult('');

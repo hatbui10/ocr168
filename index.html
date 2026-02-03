@@ -108,6 +108,33 @@ textarea {
   font-size: 13px;
   resize: vertical;
 }
+
+.file-box {
+  margin-top: 14px;
+  max-width: 520px;
+  height: 220px;              /* chiều cao cố định */
+  overflow-y: auto;           /* bật thanh kéo */
+  padding-right: 4px;         /* tránh che nội dung bởi scrollbar */
+
+  background: rgba(2,6,23,0.6);
+  border: 1px solid rgba(148,163,184,0.2);
+  border-radius: 12px;
+}
+
+/* tuỳ chọn: scrollbar cho đỡ xấu */
+.file-box::-webkit-scrollbar {
+  width: 8px;
+}
+
+.file-box::-webkit-scrollbar-thumb {
+  background: rgba(148,163,184,0.35);
+  border-radius: 6px;
+}
+
+.file-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(148,163,184,0.55);
+}
+
 </style>
 </head>
 
@@ -120,7 +147,9 @@ textarea {
   <input type="file" id="fileInput" multiple accept=".html,.txt">
 </label>
 
-<ul id="fileList"></ul>
+<div class="file-box">
+  <ul id="fileList"></ul>
+</div>
 
 <button onclick="docFile()">Đọc file theo thứ tự đã sắp xếp</button>
 <button onclick="exportTXT()">Xuất chuỗi 0–1 ra TXT</button>
@@ -255,6 +284,8 @@ ${bits}
 
 </body>
 </html>
+
+
 
 
 

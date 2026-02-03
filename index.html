@@ -1,348 +1,222 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nhập 0/1 và tính kết quả</title>
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        sans-serif;
-    }
+<meta charset="UTF-8">
+<title>Đọc file log & trích kết quả kỳ xổ</title>
 
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #1e3c72, #2a5298);
-      color: #fff;
-    }
-
-    .card {
-      background: rgba(255, 255, 255, 0.95);
-      color: #222;
-      padding: 24px 28px 28px;
-      border-radius: 16px;
-      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
-      max-width: 420px;
-      width: 100%;
-    }
-
-    .title {
-      text-align: center;
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-
-    .subtitle {
-      text-align: center;
-      font-size: 13px;
-      color: #666;
-      margin-bottom: 20px;
-    }
-
-    .row-label {
-      font-size: 13px;
-      margin-bottom: 4px;
-      color: #555;
-    }
-
-    .boxes-row {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-      justify-content: center;
-    }
-
-    .box {
-      width: 44px;
-      height: 44px;
-      border-radius: 10px;
-      border: 1px solid #d0d7de;
-      text-align: center;
-      font-size: 22px;
-      font-weight: 600;
-      outline: none;
-      transition: all 0.18s ease;
-      background: #f8fafc;
-      color: #111827;
-    }
-
-    .box[readonly] {
-      background: #f1f5f9;
-    }
-
-    .box:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25);
-      background: #ffffff;
-    }
-
-    .box.result {
-      background: #ecfdf5;
-      border-color: #bbf7d0;
-      color: #166534;
-    }
-
-    .input-section {
-      margin-top: 10px;
-      text-align: center;
-    }
-
-    .input-label {
-      font-size: 13px;
-      margin-bottom: 6px;
-      color: #444;
-    }
-
-    #box6 {
-      width: 80px;
-      height: 44px;
-      border-radius: 999px;
-      border: 1px solid #d0d7de;
-      text-align: center;
-      font-size: 24px;
-      font-weight: 700;
-      outline: none;
-      transition: all 0.18s ease;
-      background: #eef2ff;
-      color: #1e293b;
-    }
-
-    #box6:focus {
-      border-color: #4f46e5;
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.25);
-      background: #e0e7ff;
-    }
-
-    #box6:disabled {
-      background: #e5e7eb;
-      color: #6b7280;
-      cursor: not-allowed;
-    }
-
-    .status {
-      margin-top: 10px;
-      text-align: center;
-      font-size: 12px;
-      color: #6b7280;
-      min-height: 16px;
-    }
-
-    .status.working {
-      color: #d97706;
-    }
-
-    .status.done {
-      color: #15803d;
-    }
-
-    .reset-btn {
-  display: block;        /* 👈 DÒNG CỨU RỖI */
-  margin: 16px auto 0;
-  padding: 10px 24px;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: #fff;
-  border: none;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+<style>
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color: #e5e7eb;
+  padding: 24px;
+  min-height: 100vh;
 }
 
+/* tiêu đề */
+h2 {
+  margin: 0 0 14px;
+  font-size: 20px;
+  font-weight: 600;
+}
 
-    .reset-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
-    }
+/* nút chọn file */
+.file-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #022c22;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
 
-    .reset-btn:active {
-      transform: translateY(0);
-    }
-  </style>
+.file-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(56,189,248,0.35);
+}
+
+.file-btn.selected {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #052e16;
+}
+
+/* ẩn input file gốc */
+.file-btn input {
+  display: none;
+}
+
+/* danh sách file */
+#fileList {
+  margin-top: 14px;
+  padding: 0;
+  list-style: none;
+  max-width: 520px;
+}
+
+#fileList li {
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(148,163,184,0.15);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  cursor: grab;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+#fileList li.dragging {
+  opacity: 0.4;
+}
+
+/* nút đọc */
+button {
+  margin-top: 12px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #052e16;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button:hover {
+  box-shadow: 0 8px 20px rgba(34,197,94,0.25);
+}
+
+/* textarea */
+.wrapper {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+textarea {
+  flex: 1;
+  height: 360px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(148,163,184,0.15);
+  background: rgba(2,6,23,0.7);
+  color: #e5e7eb;
+  font-family: Consolas, monospace;
+  font-size: 13px;
+  resize: vertical;
+}
+</style>
 </head>
+
 <body>
-  <div class="card">
-    <div class="title">Chuỗi 0/1 &amp; Kết quả</div>
-    <div class="subtitle">
-      Nhập lần lượt 5 lần số 0 hoặc 1, sau đó hệ thống tự tính và hiển thị kết quả.
-    </div>
 
-    <div class="row-label">Chuỗi đã nhập (dịch trái mỗi lần):</div>
-    <div class="boxes-row">
-      <input id="box1" class="box" type="text" readonly />
-      <input id="box2" class="box" type="text" readonly />
-      <input id="box3" class="box" type="text" readonly />
-      <input id="box4" class="box" type="text" readonly />
-      <input id="box5" class="box" type="text" readonly />
-    </div>
+<h2>Đọc file HTML log → kết quả kỳ xổ</h2>
 
-    <div class="row-label">Kết quả sau khi đủ 5 lần nhập:</div>
-    <div class="boxes-row">
-      <input id="r1" class="box result" type="text" readonly />
-      <input id="r2" class="box result" type="text" readonly />
-      <input id="r3" class="box result" type="text" readonly />
-      <input id="r4" class="box result" type="text" readonly />
-      <input id="r5" class="box result" type="text" readonly />
-    </div>
+<label class="file-btn" id="fileLabel">
+  📂 Chọn file log
+  <input type="file" id="fileInput" multiple accept=".html,.txt">
+</label>
 
-    <div class="input-section">
-      <div class="input-label">Nhập từng số 0 hoặc 1 vào ô dưới (tổng cộng 5 lần):</div>
-      <input
-        id="box6"
-        type="tel"
-        inputmode="numeric"
-        pattern="[01]"
-        maxlength="1"
-        autocomplete="off"
-        placeholder="0 / 1"
-      />
-    </div>
+<ul id="fileList"></ul>
 
-    <div id="status" class="status"></div>
+<button onclick="docFile()">Đọc file theo thứ tự đã sắp</button>
 
-    <button id="resetBtn" class="reset-btn">🔄 Nhập lại từ đầu</button>
-  </div>
+<div class="wrapper">
+  <textarea id="lines" placeholder="Kết quả kỳ xổ (để kiểm tra)"></textarea>
+  <textarea id="bits" placeholder="Chuỗi 0–1 (LỚN=1, NHỎ=0)"></textarea>
+</div>
 
-  <script>
-    const displayBoxes = [
-      document.getElementById('box1'),
-      document.getElementById('box2'),
-      document.getElementById('box3'),
-      document.getElementById('box4'),
-      document.getElementById('box5')
-    ];
+<script>
+let selectedFiles = [];
 
-    const resultBoxes = [
-      document.getElementById('r1'),
-      document.getElementById('r2'),
-      document.getElementById('r3'),
-      document.getElementById('r4'),
-      document.getElementById('r5')
-    ];
+/* chọn file */
+document.getElementById("fileInput").addEventListener("change", e => {
+  selectedFiles = Array.from(e.target.files);
+  renderFileList();
 
-    const inputBox = document.getElementById('box6');
-    const statusEl = document.getElementById('status');
-    const resetBtn = document.getElementById('resetBtn');
+  const label = document.getElementById("fileLabel");
+  label.classList.add("selected");
+  label.childNodes[0].textContent = `📂 Đã chọn ${selectedFiles.length} file`;
+});
 
-    let current = ['', '', '', '', ''];
-    let inputCount = 0;
-    let locked = false;
+/* render & kéo thả */
+function renderFileList() {
+  const list = document.getElementById("fileList");
+  list.innerHTML = "";
 
-    function renderDisplay() {
-      current.forEach((v, i) => {
-        displayBoxes[i].value = v;
-      });
-    }
+  selectedFiles.forEach((file, index) => {
+    const li = document.createElement("li");
+    li.textContent = `${index + 1}. ${file.name}`;
+    li.draggable = true;
 
-    function renderResult(pattern) {
-      for (let i = 0; i < 5; i++) {
-        resultBoxes[i].value = pattern ? pattern[i] : '';
-      }
-    }
-
-    // Chuẩn bị cho chu kỳ mới - KHÔNG xóa 5 bit nhập và 5 ô kết quả
-    function prepareNextRound() {
-      current = ['', '', '', '', ''];
-      inputCount = 0;
-      locked = false;
-      inputBox.disabled = false;
-      inputBox.value = '';
-      statusEl.textContent = 'Nhập tiếp 5 bit cho chu kỳ mới…';
-      statusEl.className = 'status';
-      inputBox.focus();
-    }
-
-    function resetAll() {
-      current = ['', '', '', '', ''];
-      inputCount = 0;
-      locked = false;
-      inputBox.disabled = false;
-      inputBox.value = '';
-      renderDisplay();
-      renderResult('');
-      statusEl.textContent = '';
-      statusEl.className = 'status';
-      inputBox.focus();
-    }
-
-    inputBox.addEventListener('keydown', (e) => {
-      if (locked) {
-        e.preventDefault();
-        return;
-      }
-      const allowedKeys = ['0', '1', 'Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab'];
-      if (!allowedKeys.includes(e.key)) {
-        e.preventDefault();
-      }
+    li.addEventListener("dragstart", () => {
+      li.classList.add("dragging");
+      li.dataset.index = index;
     });
 
-    inputBox.addEventListener('input', () => {
-      if (locked) {
-        inputBox.value = '';
-        return;
-      }
-
-      const val = inputBox.value.trim();
-
-      if (val !== '0' && val !== '1') {
-        inputBox.value = '';
-        return;
-      }
-
-      // Bit đầu tiên của chu kỳ mới → xóa 5 bit nhập cũ và 5 ô kết quả cũ
-      if (inputCount === 0) {
-        current = ['', '', '', '', ''];
-        renderDisplay();
-        renderResult('');
-      }
-
-      inputCount++;
-
-      current.shift();
-      current.push(val);
-      renderDisplay();
-
-      inputBox.value = '';
-
-      if (inputCount < 5) {
-        statusEl.textContent = `Đã nhập ${inputCount}/5 lần. Tiếp tục nhập…`;
-        statusEl.className = 'status';
-        inputBox.focus();
-        return;
-      }
-
-      locked = true;
-      inputBox.disabled = true;
-      statusEl.textContent = 'Đủ 5 lần. Đang tính toán…';
-      statusEl.className = 'status working';
-
-      setTimeout(() => {
-        const sum = current.reduce((acc, v) => acc + (v === '1' ? 1 : 0), 0);
-        const resultPattern = sum >= 3 ? '00101' : '11010';
-        renderResult(resultPattern);
-
-        statusEl.textContent = `Hoàn tất. Tổng số bit 1 là ${sum}. Nhập tiếp 5 bit…`;
-        statusEl.className = 'status done';
-
-        prepareNextRound();
-      }, 1000);
+    li.addEventListener("dragend", () => {
+      li.classList.remove("dragging");
     });
 
-    resetBtn.addEventListener('click', resetAll);
+    li.addEventListener("dragover", e => e.preventDefault());
 
-    window.addEventListener('load', () => {
-      renderDisplay();
-      renderResult('');
-      inputBox.focus();
+    li.addEventListener("drop", e => {
+      e.preventDefault();
+      const from = Number(document.querySelector(".dragging").dataset.index);
+      const to = index;
+
+      const moved = selectedFiles.splice(from, 1)[0];
+      selectedFiles.splice(to, 0, moved);
+      renderFileList();
     });
-  </script>
+
+    list.appendChild(li);
+  });
+}
+
+/* đọc file */
+function readFileAsText(file) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsText(file, "UTF-8");
+  });
+}
+
+/* xử lý log */
+async function docFile() {
+  const linesBox = document.getElementById("lines");
+  const bitsBox = document.getElementById("bits");
+
+  linesBox.value = "";
+  bitsBox.value = "";
+
+  const regex = /Kết quả kỳ xổ\s*:\s*(\d+)\s*(LỚN|NHỎ)/g;
+
+  let allLines = [];
+  let allBits = [];
+
+  for (const file of selectedFiles) {
+    const text = await readFileAsText(file);
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const ky = match[1];
+      const kq = match[2];
+
+      allLines.push(`[${file.name}] Kết quả kỳ xổ : ${ky} ${kq}`);
+      allBits.push(kq === "LỚN" ? "1" : "0");
+    }
+  }
+
+  linesBox.value = allLines.join("\n");
+  bitsBox.value = allBits.join("");
+}
+</script>
+
 </body>
 </html>
 

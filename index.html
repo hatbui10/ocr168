@@ -113,7 +113,7 @@ textarea {
 
 <body>
 
-<h2>Đọc file HTML log Telegram </h2>
+<h2>Đọc file HTML log → kết quả kỳ xổ</h2>
 
 <label class="file-btn" id="fileLabel">
   📂 Chọn file log
@@ -122,7 +122,9 @@ textarea {
 
 <ul id="fileList"></ul>
 
-<button onclick="docFile()">Đọc file theo thứ tự đã sắp</button>
+<button onclick="docFile()">Đọc file theo thứ tự đã sắp xếp</button>
+<button onclick="exportTXT()">Xuất chuỗi 0–1 ra TXT</button>
+
 
 <div class="wrapper">
   <textarea id="lines" placeholder="Kết quả kỳ xổ (để kiểm tra)"></textarea>
@@ -215,9 +217,42 @@ async function docFile() {
   linesBox.value = allLines.join("\n");
   bitsBox.value = allBits.join("");
 }
+
+function exportTXT() {
+  const bits = document.getElementById("bits").value.trim();
+  if (!bits) return;
+
+  const now = new Date();
+
+  const pad = n => String(n).padStart(2, "0");
+  const timeStr =
+    now.getFullYear() + "-" +
+    pad(now.getMonth() + 1) + "-" +
+    pad(now.getDate()) + "_" +
+    pad(now.getHours()) + "-" +
+    pad(now.getMinutes()) + "-" +
+    pad(now.getSeconds());
+
+  const content =
+`Thời gian xuất: ${now.toLocaleString("vi-VN")}
+Chuỗi kết quả (LỚN=1, NHỎ=0):
+
+${bits}
+`;
+
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `chuoi_ket_qua_${timeStr}.txt`;
+  a.click();
+
+  URL.revokeObjectURL(url);
+}
+
 </script>
 
 </body>
 </html>
-
 

@@ -3,195 +3,154 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCR auto cột số</title>
-
+<title>OCR 150 Ảnh - 4 Dãy Mỗi Dòng</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-
 <style>
-body {
-  font-family: sans-serif;
-  background: #111;
-  color: #fff;
-  padding: 20px;
-}
-
-input, button, textarea {
-  width: 100%;
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-}
-
-button {
-  background: #2196f3;
-  color: #fff;
-  cursor: pointer;
-}
-
-textarea {
-  height: 250px;
-}
+  body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; padding: 20px; max-width: 900px; margin: auto; }
+  .card { background: #1e1e1e; padding: 25px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  h2 { color: #4caf50; text-align: center; margin-top: 0; }
+  .input-group { margin: 20px 0; }
+  input[type="file"] { background: #2d2d2d; padding: 12px; border-radius: 8px; width: 100%; color: #fff; cursor: pointer; border: 1px dashed #555; }
+  button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
+  #btnRun { background: #4caf50; color: white; margin-bottom: 10px; }
+  #btnRun:hover { background: #45a049; }
+  #btnRun:disabled { background: #3d3d3d; color: #777; cursor: not-allowed; }
+  #btnDownload { background: #2196F3; color: white; }
+  textarea { 
+    width: 100%; height: 350px; margin-top: 20px; background: #000; color: #00ff41; 
+    border: 1px solid #333; padding: 15px; font-family: 'Courier New', monospace; 
+    font-size: 17px; box-sizing: border-box; border-radius: 8px; line-height: 1.6;
+  }
+  .progress-container { margin: 20px 0; display: none; }
+  .progress-bar { height: 12px; background: #333; border-radius: 6px; overflow: hidden; }
+  #progressFill { width: 0%; height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a); transition: width 0.3s; }
+  #status { text-align: center; margin-top: 10px; font-weight: bold; color: #ffeb3b; }
 </style>
 </head>
-
 <body>
 
-<h3>OCR tự tìm cột số (chuẩn cao)</h3>
+<div class="card">
+  <h2>Quét VN168 Hàng Loạt (4 Dãy/Dòng)</h2>
+  
+  <div class="input-group">
+    <label>Chọn tối đa 150 ảnh:</label>
+    <input type="file" id="upload" multiple accept="image/*">
+  </div>
+  
+  <button id="btnRun" onclick="processImages()">BẮT ĐẦU XỬ LÝ</button>
+  
+  <div class="progress-container" id="progressCont">
+    <div class="progress-bar"><div id="progressFill"></div></div>
+    <div id="status">Sẵn sàng quét...</div>
+  </div>
 
-<input type="file" id="upload" multiple accept="image/*">
-<button onclick="runOCR()">Chạy OCR</button>
-
-<textarea id="output"></textarea>
-
-<button onclick="downloadTxt()">Xuất TXT</button>
+  <textarea id="output" readonly placeholder="Kết quả: 4 dãy 10 số trên mỗi dòng sẽ hiện ở đây..."></textarea>
+  
+  <button id="btnDownload" onclick="downloadTxt()">TẢI FILE KẾT QUẢ (.TXT)</button>
+</div>
 
 <script>
+let worker = null;
 
-// load ảnh
-function loadImage(file) {
-  return new Promise(resolve => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.src = URL.createObjectURL(file);
-  });
+async function initWorker() {
+  if (!worker) {
+    worker = await Tesseract.createWorker();
+    await worker.loadLanguage('eng');
+    await worker.initialize('eng');
+    await worker.setParameters({ tessedit_char_whitelist: '0123456789' });
+  }
 }
 
-// SMART CROP cột số
-function cropMiddle(img) {
+function cropTarget(img) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-
-  canvas.width = img.width;
-  canvas.height = img.height;
-  ctx.drawImage(img, 0, 0);
-
-  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  let data = imageData.data;
-
-  // trắng đen
-  for (let i = 0; i < data.length; i += 4) {
-    let gray = (data[i] + data[i+1] + data[i+2]) / 3;
-    let val = gray > 140 ? 255 : 0;
-    data[i] = data[i+1] = data[i+2] = val;
-  }
-  ctx.putImageData(imageData, 0, 0);
-
-  // đếm pixel đen theo cột
-  let colSum = new Array(canvas.width).fill(0);
-
-  for (let x = 0; x < canvas.width; x++) {
-    for (let y = 0; y < canvas.height; y++) {
-      let i = (y * canvas.width + x) * 4;
-      if (data[i] === 0) colSum[x]++;
-    }
-  }
-
-  let max = Math.max(...colSum);
-  let threshold = max * 0.5;
-
-  let start = 0, end = canvas.width;
-
-  for (let i = 0; i < colSum.length; i++) {
-    if (colSum[i] > threshold) {
-      start = i;
-      break;
-    }
-  }
-
-  for (let i = colSum.length - 1; i >= 0; i--) {
-    if (colSum[i] > threshold) {
-      end = i;
-      break;
-    }
-  }
-
-  let padding = 10;
-  start = Math.max(0, start - padding);
-  end = Math.min(canvas.width, end + padding);
-
-  let w = end - start;
-  let h = canvas.height;
-
-  const cropCanvas = document.createElement("canvas");
-  cropCanvas.width = w;
-  cropCanvas.height = h;
-
-  cropCanvas.getContext("2d")
-    .drawImage(canvas, start, 0, w, h, 0, 0, w, h);
-
-  return cropCanvas;
+  // Tọa độ tối ưu cho cột số ở giữa
+  const x = img.width * 0.40;
+  const w = img.width * 0.20;
+  const y = img.height * 0.32; 
+  const h = img.height * 0.52;
+  canvas.width = w;
+  canvas.height = h;
+  ctx.drawImage(img, x, y, w, h, 0, 0, w, h);
+  return canvas;
 }
 
-// OCR
-async function runOCR() {
+async function processImages() {
   const files = document.getElementById("upload").files;
+  if (files.length === 0) return alert("Chưa chọn ảnh bạn ơi!");
 
-  if (!files.length) {
-    alert("Chọn ảnh trước 😏");
-    return;
-  }
-
-  if (files.length > 150) {
-    alert("Tối đa 150 ảnh thôi");
-    return;
-  }
-
-  let allNumbers = [];
+  const btnRun = document.getElementById("btnRun");
   const output = document.getElementById("output");
+  const status = document.getElementById("status");
+  const progressCont = document.getElementById("progressCont");
+  const progressFill = document.getElementById("progressFill");
+
+  btnRun.disabled = true;
+  progressCont.style.display = "block";
+  output.value = "";
+  
+  await initWorker();
+
+  let allResults = [];
 
   for (let i = 0; i < files.length; i++) {
-    output.value = `Đang xử lý ${i+1}/${files.length}...`;
+    const percent = Math.round(((i + 1) / files.length) * 100);
+    status.innerText = `Đang quét ảnh ${i + 1}/${files.length}...`;
+    progressFill.style.width = percent + "%";
 
-    const img = await loadImage(files[i]);
-    const canvas = cropMiddle(img);
+    try {
+      const img = await new Promise(res => {
+        const r = new FileReader();
+        r.onload = e => {
+          const im = new Image();
+          im.onload = () => res(im);
+          im.src = e.target.result;
+        };
+        r.readAsDataURL(files[i]);
+      });
 
-    const { data } = await Tesseract.recognize(
-      canvas,
-      'eng',
-      {
-        tessedit_char_whitelist: '0123456789'
+      const cropped = cropTarget(img);
+      const { data: { text } } = await worker.recognize(cropped);
+      let nums = text.match(/\d/g);
+      
+      if (nums) {
+        // Lấy 10 số đầu, đảo ngược (dưới lên)
+        let row = nums.slice(0, 10).reverse().join('');
+        allResults.push(row);
+      } else {
+        allResults.push("0000000000"); // Ghi đè nếu lỗi để không lệch dòng
       }
-    );
 
-    let lines = data.text.split('\n');
-
-    lines.forEach(line => {
-      let nums = line.match(/\d/g);
-      if (nums && nums.length === 1) {
-        allNumbers.push(nums[0]);
+      // Logic hiển thị 4 dãy mỗi dòng
+      let displayMsg = "";
+      for (let j = 0; j < allResults.length; j++) {
+        displayMsg += allResults[j];
+        if ((j + 1) % 4 === 0) {
+          displayMsg += "\n"; // Đủ 4 dãy thì xuống dòng
+        } else if (j !== allResults.length - 1) {
+          displayMsg += " "; // Cách nhau 1 khoảng trắng giữa các dãy
+        }
       }
-    });
+      output.value = displayMsg;
+
+    } catch (e) {
+      console.error(e);
+    }
   }
 
-  // đảo từ dưới lên
-  allNumbers.reverse();
-
-  // cảnh báo sai
-  if (allNumbers.length % 10 !== 0) {
-    console.warn("Có thể OCR sai hoặc thiếu số");
-  }
-
-  // chia 10 số
-  let finalText = '';
-  for (let i = 0; i < allNumbers.length; i += 10) {
-    finalText += allNumbers.slice(i, i + 10).join('') + '\n';
-  }
-
-  output.value = finalText.trim();
+  status.innerText = "XONG! ĐÃ QUÉT TẤT CẢ.";
+  btnRun.disabled = false;
 }
 
-// tải txt
 function downloadTxt() {
   const text = document.getElementById("output").value;
+  if (!text) return;
   const blob = new Blob([text], { type: 'text/plain' });
-
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = "ketqua.txt";
+  a.download = `VN168_Export_${Date.now()}.txt`;
   a.click();
 }
-
 </script>
 
 </body>

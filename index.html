@@ -2,291 +2,197 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Đọc file log Telegram</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OCR auto cột số</title>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 
 <style>
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-  background: radial-gradient(circle at top, #0f172a, #020617);
-  color: #e5e7eb;
-  padding: 24px;
-  min-height: 100vh;
+  font-family: sans-serif;
+  background: #111;
+  color: #fff;
+  padding: 20px;
 }
 
-/* tiêu đề */
-h2 {
-  margin: 0 0 14px;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-/* nút chọn file */
-.file-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 18px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
-  color: #022c22;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.file-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(56,189,248,0.35);
-}
-
-.file-btn.selected {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #052e16;
-}
-
-/* ẩn input file gốc */
-.file-btn input {
-  display: none;
-}
-
-/* danh sách file */
-#fileList {
-  margin-top: 14px;
-  padding: 0;
-  list-style: none;
-  max-width: 520px;
-}
-
-#fileList li {
-  background: rgba(15,23,42,0.8);
-  border: 1px solid rgba(148,163,184,0.15);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-bottom: 6px;
-  cursor: grab;
-  font-family: Consolas, monospace;
-  font-size: 13px;
-}
-
-#fileList li.dragging {
-  opacity: 0.4;
-}
-
-/* nút đọc */
-button {
-  margin-top: 12px;
-  padding: 10px 18px;
-  border-radius: 10px;
+input, button, textarea {
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
   border: none;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: #052e16;
-  font-weight: 600;
+}
+
+button {
+  background: #2196f3;
+  color: #fff;
   cursor: pointer;
-}
-
-button:hover {
-  box-shadow: 0 8px 20px rgba(34,197,94,0.25);
-}
-
-/* textarea */
-.wrapper {
-  display: flex;
-  gap: 16px;
-  margin-top: 16px;
 }
 
 textarea {
-  flex: 1;
-  height: 360px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(148,163,184,0.15);
-  background: rgba(2,6,23,0.7);
-  color: #e5e7eb;
-  font-family: Consolas, monospace;
-  font-size: 13px;
-  resize: vertical;
+  height: 250px;
 }
-
-.file-box {
-  margin-top: 14px;
-  max-width: 520px;
-  height: 220px;              /* chiều cao cố định */
-  overflow-y: auto;           /* bật thanh kéo */
-  padding-right: 4px;         /* tránh che nội dung bởi scrollbar */
-
-  background: rgba(2,6,23,0.6);
-  border: 1px solid rgba(148,163,184,0.2);
-  border-radius: 12px;
-}
-
-/* tuỳ chọn: scrollbar cho đỡ xấu */
-.file-box::-webkit-scrollbar {
-  width: 8px;
-}
-
-.file-box::-webkit-scrollbar-thumb {
-  background: rgba(148,163,184,0.35);
-  border-radius: 6px;
-}
-
-.file-box::-webkit-scrollbar-thumb:hover {
-  background: rgba(148,163,184,0.55);
-}
-
 </style>
 </head>
 
 <body>
 
-<h2>Đọc file HTML log Telegram </h2>
+<h3>OCR tự tìm cột số (chuẩn cao)</h3>
 
-<label class="file-btn" id="fileLabel">
-  📂 Chọn file log
-  <input type="file" id="fileInput" multiple accept=".html,.txt">
-</label>
+<input type="file" id="upload" multiple accept="image/*">
+<button onclick="runOCR()">Chạy OCR</button>
 
-<div class="file-box">
-  <ul id="fileList"></ul>
-</div>
+<textarea id="output"></textarea>
 
-<button onclick="docFile()">Đọc file theo thứ tự đã sắp xếp</button>
-<button onclick="exportTXT()">Xuất chuỗi 0–1 ra TXT</button>
-
-
-<div class="wrapper">
-  <textarea id="lines" placeholder="Ghi rõ để kiểm tra"></textarea>
-  <textarea id="bits" placeholder="Chuỗi 0–1 "></textarea>
-</div>
+<button onclick="downloadTxt()">Xuất TXT</button>
 
 <script>
-let selectedFiles = [];
 
-/* chọn file */
-document.getElementById("fileInput").addEventListener("change", e => {
-  selectedFiles = Array.from(e.target.files);
-  renderFileList();
-
-  const label = document.getElementById("fileLabel");
-  label.classList.add("selected");
-  label.childNodes[0].textContent = `📂 Đã chọn ${selectedFiles.length} file`;
-});
-
-/* render & kéo thả */
-function renderFileList() {
-  const list = document.getElementById("fileList");
-  list.innerHTML = "";
-
-  selectedFiles.forEach((file, index) => {
-    const li = document.createElement("li");
-    li.textContent = `${index + 1}. ${file.name}`;
-    li.draggable = true;
-
-    li.addEventListener("dragstart", () => {
-      li.classList.add("dragging");
-      li.dataset.index = index;
-    });
-
-    li.addEventListener("dragend", () => {
-      li.classList.remove("dragging");
-    });
-
-    li.addEventListener("dragover", e => e.preventDefault());
-
-    li.addEventListener("drop", e => {
-      e.preventDefault();
-      const from = Number(document.querySelector(".dragging").dataset.index);
-      const to = index;
-
-      const moved = selectedFiles.splice(from, 1)[0];
-      selectedFiles.splice(to, 0, moved);
-      renderFileList();
-    });
-
-    list.appendChild(li);
-  });
-}
-
-/* đọc file */
-function readFileAsText(file) {
+// load ảnh
+function loadImage(file) {
   return new Promise(resolve => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.readAsText(file, "UTF-8");
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.src = URL.createObjectURL(file);
   });
 }
 
-/* xử lý log */
-async function docFile() {
-  const linesBox = document.getElementById("lines");
-  const bitsBox = document.getElementById("bits");
+// SMART CROP cột số
+function cropMiddle(img) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
 
-  linesBox.value = "";
-  bitsBox.value = "";
+  canvas.width = img.width;
+  canvas.height = img.height;
+  ctx.drawImage(img, 0, 0);
 
-  const regex = /Kết quả kỳ xổ\s*:\s*(\d+)\s*(LỚN|NHỎ)/g;
+  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  let data = imageData.data;
 
-  let allLines = [];
-  let allBits = [];
+  // trắng đen
+  for (let i = 0; i < data.length; i += 4) {
+    let gray = (data[i] + data[i+1] + data[i+2]) / 3;
+    let val = gray > 140 ? 255 : 0;
+    data[i] = data[i+1] = data[i+2] = val;
+  }
+  ctx.putImageData(imageData, 0, 0);
 
-  for (const file of selectedFiles) {
-    const text = await readFileAsText(file);
-    let match;
+  // đếm pixel đen theo cột
+  let colSum = new Array(canvas.width).fill(0);
 
-    while ((match = regex.exec(text)) !== null) {
-      const ky = match[1];
-      const kq = match[2];
-
-      allLines.push(`[${file.name}] Kết quả kỳ xổ : ${ky} ${kq}`);
-      allBits.push(kq === "LỚN" ? "1" : "0");
+  for (let x = 0; x < canvas.width; x++) {
+    for (let y = 0; y < canvas.height; y++) {
+      let i = (y * canvas.width + x) * 4;
+      if (data[i] === 0) colSum[x]++;
     }
   }
 
-  linesBox.value = allLines.join("\n");
-  bitsBox.value = allBits.join("");
+  let max = Math.max(...colSum);
+  let threshold = max * 0.5;
+
+  let start = 0, end = canvas.width;
+
+  for (let i = 0; i < colSum.length; i++) {
+    if (colSum[i] > threshold) {
+      start = i;
+      break;
+    }
+  }
+
+  for (let i = colSum.length - 1; i >= 0; i--) {
+    if (colSum[i] > threshold) {
+      end = i;
+      break;
+    }
+  }
+
+  let padding = 10;
+  start = Math.max(0, start - padding);
+  end = Math.min(canvas.width, end + padding);
+
+  let w = end - start;
+  let h = canvas.height;
+
+  const cropCanvas = document.createElement("canvas");
+  cropCanvas.width = w;
+  cropCanvas.height = h;
+
+  cropCanvas.getContext("2d")
+    .drawImage(canvas, start, 0, w, h, 0, 0, w, h);
+
+  return cropCanvas;
 }
 
-function exportTXT() {
-  const bits = document.getElementById("bits").value.trim();
-  if (!bits) return;
+// OCR
+async function runOCR() {
+  const files = document.getElementById("upload").files;
 
-  const now = new Date();
+  if (!files.length) {
+    alert("Chọn ảnh trước 😏");
+    return;
+  }
 
-  const pad = n => String(n).padStart(2, "0");
-  const timeStr =
-    now.getFullYear() + "-" +
-    pad(now.getMonth() + 1) + "-" +
-    pad(now.getDate()) + "_" +
-    pad(now.getHours()) + "-" +
-    pad(now.getMinutes()) + "-" +
-    pad(now.getSeconds());
+  if (files.length > 150) {
+    alert("Tối đa 150 ảnh thôi");
+    return;
+  }
 
-  const content =
-`Thời gian xuất: ${now.toLocaleString("vi-VN")}
-Chuỗi kết quả (LỚN=1, NHỎ=0):
+  let allNumbers = [];
+  const output = document.getElementById("output");
 
-${bits}
-`;
+  for (let i = 0; i < files.length; i++) {
+    output.value = `Đang xử lý ${i+1}/${files.length}...`;
 
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+    const img = await loadImage(files[i]);
+    const canvas = cropMiddle(img);
+
+    const { data } = await Tesseract.recognize(
+      canvas,
+      'eng',
+      {
+        tessedit_char_whitelist: '0123456789'
+      }
+    );
+
+    let lines = data.text.split('\n');
+
+    lines.forEach(line => {
+      let nums = line.match(/\d/g);
+      if (nums && nums.length === 1) {
+        allNumbers.push(nums[0]);
+      }
+    });
+  }
+
+  // đảo từ dưới lên
+  allNumbers.reverse();
+
+  // cảnh báo sai
+  if (allNumbers.length % 10 !== 0) {
+    console.warn("Có thể OCR sai hoặc thiếu số");
+  }
+
+  // chia 10 số
+  let finalText = '';
+  for (let i = 0; i < allNumbers.length; i += 10) {
+    finalText += allNumbers.slice(i, i + 10).join('') + '\n';
+  }
+
+  output.value = finalText.trim();
+}
+
+// tải txt
+function downloadTxt() {
+  const text = document.getElementById("output").value;
+  const blob = new Blob([text], { type: 'text/plain' });
 
   const a = document.createElement("a");
-  a.href = url;
-  a.download = `chuoi_ket_qua_${timeStr}.txt`;
+  a.href = URL.createObjectURL(blob);
+  a.download = "ketqua.txt";
   a.click();
-
-  URL.revokeObjectURL(url);
 }
 
 </script>
 
 </body>
 </html>
-
-
-
-
-
-

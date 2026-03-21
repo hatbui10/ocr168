@@ -128,7 +128,7 @@ async function processImages() {
         if ((j + 1) % 4 === 0) {
           displayMsg += "\n"; // Đủ 4 dãy thì xuống dòng
         } else if (j !== allResults.length - 1) {
-          displayMsg += " "; // Cách nhau 1 khoảng trắng giữa các dãy
+          displayMsg += "      "; // Cách nhau 1 khoảng trắng giữa các dãy
         }
       }
       output.value = displayMsg;

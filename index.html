@@ -3,24 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCR 150 Ảnh - 4 Dãy Mỗi Dòng</title>
+<title>OCR 150 Ảnh - Tối Ưu Copy</title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <style>
-  body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; padding: 20px; max-width: 900px; margin: auto; }
+  body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; padding: 20px; max-width: 1000px; margin: auto; }
   .card { background: #1e1e1e; padding: 25px; border-radius: 15px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   h2 { color: #4caf50; text-align: center; margin-top: 0; }
   .input-group { margin: 20px 0; }
-  input[type="file"] { background: #2d2d2d; padding: 12px; border-radius: 8px; width: 100%; color: #fff; cursor: pointer; border: 1px dashed #555; }
-  button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; transition: 0.2s; }
-  #btnRun { background: #4caf50; color: white; margin-bottom: 10px; }
+  input[type="file"] { background: #2d2d2d; padding: 12px; border-radius: 8px; width: 100%; color: #fff; cursor: pointer; border: 1px dashed #555; box-sizing: border-box; }
+  
+  .grid-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+  @media (max-width: 768px) { .grid-container { grid-template-columns: 1fr; } }
+
+  button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+  #btnRun { background: #4caf50; color: white; font-size: 16px; padding: 15px; }
   #btnRun:hover { background: #45a049; }
   #btnRun:disabled { background: #3d3d3d; color: #777; cursor: not-allowed; }
-  #btnDownload { background: #2196F3; color: white; }
+  
+  .btn-copy { background: #ff9800; color: #000; }
+  .btn-copy:hover { background: #e68a00; }
+  #btnDownload { background: #2196F3; color: white; margin-top: 20px; }
+
+  label { display: block; margin-bottom: 8px; font-weight: bold; color: #aaa; }
   textarea { 
-    width: 100%; height: 350px; margin-top: 20px; background: #000; color: #00ff41; 
+    width: 100%; height: 300px; background: #000; color: #00ff41; 
     border: 1px solid #333; padding: 15px; font-family: 'Courier New', monospace; 
-    font-size: 17px; box-sizing: border-box; border-radius: 8px; line-height: 1.6;
+    font-size: 15px; box-sizing: border-box; border-radius: 8px; line-height: 1.6; resize: none;
   }
+  
   .progress-container { margin: 20px 0; display: none; }
   .progress-bar { height: 12px; background: #333; border-radius: 6px; overflow: hidden; }
   #progressFill { width: 0%; height: 100%; background: linear-gradient(90deg, #4caf50, #8bc34a); transition: width 0.3s; }
@@ -30,7 +40,7 @@
 <body>
 
 <div class="card">
-  <h2>Quét VN168 Hàng Loạt (4 Dãy/Dòng)</h2>
+  <h2>Quét VN168 Hàng Loạt</h2>
   
   <div class="input-group">
     <label>Chọn tối đa 150 ảnh:</label>
@@ -41,10 +51,21 @@
   
   <div class="progress-container" id="progressCont">
     <div class="progress-bar"><div id="progressFill"></div></div>
-    <div id="status">Sẵn sàng quét...</div>
+    <div id="status">Sẵn sàng...</div>
   </div>
 
-  <textarea id="output" readonly placeholder="Kết quả: 4 dãy 10 số trên mỗi dòng sẽ hiện ở đây..."></textarea>
+  <div class="grid-container">
+    <div>
+      <label>Kết quả phân dòng (4 dãy/dòng):</label>
+      <textarea id="output" readonly placeholder="Đang chờ dữ liệu..."></textarea>
+      <button class="btn-copy" onclick="copyText('output')">SAO CHÉP DÒNG</button>
+    </div>
+    <div>
+      <label>Kết quả viết liền (Dãy số dài):</label>
+      <textarea id="output2" readonly placeholder="Đang chờ dữ liệu..."></textarea>
+      <button class="btn-copy" onclick="copyText('output2')">SAO CHÉP VIẾT LIỀN</button>
+    </div>
+  </div>
   
   <button id="btnDownload" onclick="downloadTxt()">TẢI FILE KẾT QUẢ (.TXT)</button>
 </div>
@@ -64,7 +85,6 @@ async function initWorker() {
 function cropTarget(img) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  // Tọa độ tối ưu cho cột số ở giữa
   const x = img.width * 0.40;
   const w = img.width * 0.20;
   const y = img.height * 0.32; 
@@ -81,6 +101,7 @@ async function processImages() {
 
   const btnRun = document.getElementById("btnRun");
   const output = document.getElementById("output");
+  const output2 = document.getElementById("output2");
   const status = document.getElementById("status");
   const progressCont = document.getElementById("progressCont");
   const progressFill = document.getElementById("progressFill");
@@ -88,6 +109,7 @@ async function processImages() {
   btnRun.disabled = true;
   progressCont.style.display = "block";
   output.value = "";
+  output2.value = "";
   
   await initWorker();
 
@@ -113,25 +135,23 @@ async function processImages() {
       const { data: { text } } = await worker.recognize(cropped);
       let nums = text.match(/\d/g);
       
-      if (nums) {
-        // Lấy 10 số đầu, đảo ngược (dưới lên)
-        let row = nums.slice(0, 10).reverse().join('');
-        allResults.push(row);
-      } else {
-        allResults.push("0000000000"); // Ghi đè nếu lỗi để không lệch dòng
-      }
+      let row = nums ? nums.slice(0, 10).reverse().join('') : "0000000000";
+      allResults.push(row);
 
-      // Logic hiển thị 4 dãy mỗi dòng
+      // Cập nhật Textarea 1 (Có định dạng 4 dãy/dòng)
       let displayMsg = "";
       for (let j = 0; j < allResults.length; j++) {
         displayMsg += allResults[j];
         if ((j + 1) % 4 === 0) {
-          displayMsg += "\n"; // Đủ 4 dãy thì xuống dòng
+          displayMsg += "\n";
         } else if (j !== allResults.length - 1) {
-          displayMsg += "      "; // Cách nhau 1 khoảng trắng giữa các dãy
+          displayMsg += "      ";
         }
       }
       output.value = displayMsg;
+
+      // Cập nhật Textarea 2 (Viết liền toàn bộ)
+      output2.value = allResults.join('');
 
     } catch (e) {
       console.error(e);
@@ -142,13 +162,25 @@ async function processImages() {
   btnRun.disabled = false;
 }
 
+// Hàm copy vào bộ nhớ tạm
+function copyText(id) {
+  const text = document.getElementById(id);
+  if (!text.value) return;
+  
+  text.select();
+  text.setSelectionRange(0, 99999); // Cho mobile
+  navigator.clipboard.writeText(text.value).then(() => {
+    alert("Đã sao chép thành công!");
+  });
+}
+
 function downloadTxt() {
   const text = document.getElementById("output").value;
   if (!text) return;
   const blob = new Blob([text], { type: 'text/plain' });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `VN168_Export_${Date.now()}.txt`;
+  a.download = `VN168_Result_${Date.now()}.txt`;
   a.click();
 }
 </script>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCR 150 Ảnh - Tối Ưu Copy</title>
+<title>OCR 150 Ảnh </title>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <style>
   body { font-family: 'Segoe UI', sans-serif; background: #121212; color: #e0e0e0; padding: 20px; max-width: 1000px; margin: auto; }
@@ -138,7 +138,6 @@ async function processImages() {
       let row = nums ? nums.slice(0, 10).reverse().join('') : "0000000000";
       allResults.push(row);
 
-      // Cập nhật Textarea 1 (Có định dạng 4 dãy/dòng)
       let displayMsg = "";
       for (let j = 0; j < allResults.length; j++) {
         displayMsg += allResults[j];
@@ -149,8 +148,6 @@ async function processImages() {
         }
       }
       output.value = displayMsg;
-
-      // Cập nhật Textarea 2 (Viết liền toàn bộ)
       output2.value = allResults.join('');
 
     } catch (e) {
@@ -162,25 +159,25 @@ async function processImages() {
   btnRun.disabled = false;
 }
 
-// Hàm copy vào bộ nhớ tạm
 function copyText(id) {
   const text = document.getElementById(id);
   if (!text.value) return;
   
   text.select();
-  text.setSelectionRange(0, 99999); // Cho mobile
+  text.setSelectionRange(0, 99999);
   navigator.clipboard.writeText(text.value).then(() => {
     alert("Đã sao chép thành công!");
   });
 }
 
+// HÀM ĐÃ SỬA THEO YÊU CẦU
 function downloadTxt() {
-  const text = document.getElementById("output").value;
-  if (!text) return;
+  const text = document.getElementById("output2").value; // Lấy dữ liệu từ textarea 2
+  if (!text) return alert("Không có dữ liệu để tải!");
   const blob = new Blob([text], { type: 'text/plain' });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `VN168_Result_${Date.now()}.txt`;
+  a.download = `168-liên x.txt`; // Đặt tên file theo yêu cầu
   a.click();
 }
 </script>

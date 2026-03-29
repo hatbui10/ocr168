@@ -172,14 +172,19 @@ function copyText(id) {
 
 // HÀM ĐÃ SỬA THEO YÊU CẦU
 function downloadTxt() {
-  const text = document.getElementById("output2").value; // Lấy dữ liệu từ textarea 2
-  if (!text) return alert("Không có dữ liệu để tải!");
-  const blob = new Blob([text], { type: 'text/plain' });
+  const text = document.getElementById("output2").value;
+  if (!text) return alert("Không có dữ liệu!");
+
+  // Lấy 4 số cuối của timestamp, đảm bảo tên file luôn khác nhau và siêu ngắn
+  const suffix = Date.now().toString().slice(-4);
+  const fileName = `168-${suffix}.txt`; 
+
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `168-liên x.txt`; // Đặt tên file theo yêu cầu
+  a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
+  a.download = fileName;
   a.click();
 }
+
 </script>
 
 </body>

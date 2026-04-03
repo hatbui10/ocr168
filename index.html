@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -87,8 +88,8 @@ function cropTarget(img) {
   const ctx = canvas.getContext("2d");
   const x = img.width * 0.40;
   const w = img.width * 0.20;
-  const y = img.height * 0.32; 
-  const h = img.height * 0.52;
+  const y = img.height * 0.35; 
+  const h = img.height * 0.8;
   canvas.width = w;
   canvas.height = h;
   ctx.drawImage(img, x, y, w, h, 0, 0, w, h);

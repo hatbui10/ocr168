@@ -16,6 +16,27 @@
         .btns { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
         button { padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
         .btn-dl { background: var(--secondary); color: white; }
+        
+        /* Bổ sung Style cho Textarea */
+        .output-box { margin-bottom: 20px; }
+        label { font-weight: bold; display: block; margin-bottom: 5px; color: #555; font-size: 14px; }
+        #txtHorizontal { 
+            width: 100%; 
+            height: 100px; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            border-radius: 5px; 
+            font-family: monospace; 
+            font-size: 16px; 
+            box-sizing: border-box;
+            background: #fff9f9;
+            color: #d32f2f;
+            font-weight: bold;
+            overflow-y: scroll; /* Thanh cuộn dọc */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
         table { width: 100%; border-collapse: collapse; }
         th { background: var(--primary); color: white; padding: 10px; }
         td { padding: 8px; text-align: center; border-bottom: 1px solid #eee; font-family: monospace; }
@@ -40,6 +61,11 @@
         <button onclick="location.reload()">Xóa làm lại</button>
     </div>
 
+    <div class="output-box">
+        <label>Dãy số hàng ngang (Cũ nhất -> Mới nhất):</label>
+        <textarea id="txtHorizontal" placeholder="Kết quả hàng ngang sẽ xuất hiện tại đây..." readonly></textarea>
+    </div>
+
     <table>
         <thead>
             <tr>
@@ -57,6 +83,7 @@
 <script>
     const fileInput = document.getElementById('fileInput');
     const resultBody = document.getElementById('resultBody');
+    const txtHorizontal = document.getElementById('txtHorizontal'); // Tham chiếu textarea mới
     const progressBar = document.getElementById('progressBar');
     const progressBox = document.getElementById('progressBox');
     const status = document.getElementById('status');
@@ -72,6 +99,7 @@
 
         progressBox.style.display = 'block';
         resultBody.innerHTML = "";
+        txtHorizontal.value = ""; // Xóa trắng textarea khi bắt đầu
         finalData = [];
 
         const worker = await Tesseract.createWorker();
@@ -89,9 +117,11 @@
 
         await worker.terminate();
 
-        // --- BỔ SUNG: Sắp xếp dữ liệu từ lớn đến bé trước khi hiển thị ---
+        // Sắp xếp dữ liệu từ lớn đến bé trước khi hiển thị (Bảng)
         finalData.sort((a, b) => b.kyXo.localeCompare(a.kyXo));
+        
         renderTable(); 
+        updateHorizontalData(); // Cập nhật textarea hàng ngang
 
         status.innerText = "✅ Hoàn tất!";
         downloadBtn.disabled = false;
@@ -125,7 +155,6 @@
                 if (line.toLowerCase().includes('l') || line.toLowerCase().includes('ớ')) lonNho = "Lớn";
                 if (line.toLowerCase().includes('n') || line.toLowerCase().includes('h')) lonNho = "Nhỏ";
 
-                // Kiểm tra trùng để tránh lặp dữ liệu khi quét nhiều ảnh cùng lúc
                 if(!finalData.some(item => item.kyXo === kyXo)) {
                     finalData.push({kyXo, conSo, lonNho});
                 }
@@ -133,7 +162,6 @@
         });
     }
 
-    // --- BỔ SUNG: Hàm render bảng để hiển thị dữ liệu sau khi sắp xếp ---
     function renderTable() {
         resultBody.innerHTML = "";
         finalData.forEach(d => {
@@ -143,9 +171,16 @@
         });
     }
 
+    // BỔ SUNG: Hàm cập nhật dãy số hàng ngang (Từ cũ đến mới)
+    function updateHorizontalData() {
+        // Sao chép và đảo ngược để có thứ tự Cũ -> Mới
+        const sortedData = [...finalData].sort((a, b) => a.kyXo.localeCompare(b.kyXo));
+        const rowData = sortedData.map(item => item.conSo).join(" ");
+        txtHorizontal.value = rowData;
+    }
+
     downloadBtn.addEventListener('click', () => {
         let txt = "Kỳ xổ\tSố\tLớn Nhỏ\n";
-        // File TXT cũng sẽ tuân theo thứ tự đã sắp xếp
         finalData.forEach(d => txt += `${d.kyXo}\t${d.conSo}\t${d.lonNho}\n`);
         const blob = new Blob([txt], {type: 'text/plain'});
         const a = document.createElement('a');

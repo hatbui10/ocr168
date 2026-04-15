@@ -3,11 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR VN168 V2 - Fix Quét</title>
+    <title>OCR VN168 V2 - Màu Sắc Sáng</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
-        /* GIỮ NGUYÊN CẤU TRÚC - CHỈ ĐỔI MÀU DARKMODE */
-        :root { --primary: #ff5c5c; --secondary: #27ae60; --bg: #0f0f0f; --text: #e0e0e0; }
+        /* GIỮ NGUYÊN CẤU TRÚC - CHỈ ĐỊNH NGHĨA MÀU SÁNG */
+        :root { 
+            --primary: #ff5c5c; 
+            --secondary: #27ae60; 
+            --bg: #0f0f0f; 
+            --text: #e0e0e0;
+            --color-lon: yellow; /* Hồng sáng rực */
+            --color-nho: #00e5ff; /* Xanh Cyan sáng rực */
+        }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
         .container { max-width: 900px; margin: auto; background: #1a1a1a; padding: 20px; border-radius: 10px; border: 1px solid #333; }
         h2 { text-align: center; color: var(--primary); }
@@ -21,7 +28,6 @@
         .output-box { margin-bottom: 20px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; color: #888; font-size: 14px; }
         
-        /* TEXTAREA 2: CỐ ĐỊNH CHIỀU CAO & CÓ THANH CUỘN */
         #txtHorizontal { 
             width: 100%; 
             height: 100px; 
@@ -42,18 +48,21 @@
         table { width: 100%; border-collapse: collapse; }
         th { background: var(--primary); color: white; padding: 10px; }
         td { padding: 8px; text-align: center; border-bottom: 1px solid #333; font-family: monospace; }
-        .txt-lon { color: #ff5c5c; font-weight: bold; }
-        .txt-nho { color: #3498db; font-weight: bold; }
+        
+        /* Cập nhật class màu sắc sáng */
+        .txt-lon { color: var(--color-lon) !important; font-weight: bold; }
+        .txt-nho { color: var(--color-nho) !important; font-weight: bold; }
+        
         #canvas-helper { display: none; } 
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Hệ Thống Quét VN168 (Bản Fix Lỗi)</h2>
+    <h2>Hệ Thống Quét VN168 </h2>
     
     <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-        Click để chọn ảnh (Bản chuẩn)
+        Click để chọn ảnh (Bản màu sáng)
         <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
     </div>
 
@@ -106,7 +115,6 @@
         txtHorizontal.value = "";
         finalData = [];
 
-        // GIỮ NGUYÊN BỘ QUÉT GỐC CỦA BẠN ĐỂ ĐẢM BẢO CHẠY
         const worker = await Tesseract.createWorker();
         await worker.loadLanguage('eng+vie');
         await worker.initialize('eng+vie');
@@ -137,7 +145,6 @@
             img.onload = () => {
                 canvas.width = img.width;
                 canvas.height = img.height;
-                // GIỮ NGUYÊN BỘ LỌC CỦA BẠN
                 ctx.filter = 'grayscale(130%) contrast(100%)';
                 ctx.drawImage(img, 0, 0);
                 resolve(canvas.toDataURL('image/jpeg', 0.9));
@@ -157,8 +164,6 @@
                 
                 if (numMatch) {
                     const conSo = parseInt(numMatch[0]);
-                    
-                    // SỬA LOGIC LỚN NHỎ: 5-9 Lớn, 0-4 Nhỏ
                     let lonNho = (conSo >= 5) ? "Lớn" : "Nhỏ";
 
                     if(!finalData.some(item => item.kyXo === kyXo)) {
@@ -174,7 +179,12 @@
         finalData.forEach(d => {
             const colorClass = (d.lonNho === "Lớn") ? "txt-lon" : "txt-nho";
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${d.kyXo}</td><td style="color:red;font-weight:bold;font-size:18px;">${d.conSo}</td><td class="${colorClass}">${d.lonNho}</td>`;
+            // Cập nhật TD của con số để nhận class màu sắc giống chữ
+            tr.innerHTML = `
+                <td style="color:#888">${d.kyXo}</td>
+                <td class="${colorClass}" style="font-size:20px;">${d.conSo}</td>
+                <td class="${colorClass}">${d.lonNho}</td>
+            `;
             resultBody.appendChild(tr);
         });
     }
@@ -186,7 +196,6 @@
         txtHorizontal.scrollTop = txtHorizontal.scrollHeight;
     }
 
-    // SỬA NÚT TẢI: Chỉ lấy dãy số hàng ngang
     downloadBtn.addEventListener('click', () => {
         const content = txtHorizontal.value;
         const blob = new Blob([content], {type: 'text/plain'});

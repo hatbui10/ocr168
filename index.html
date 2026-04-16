@@ -3,87 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OCR VN168 V2 - Quét Cộng Dồn</title>
+    <title>OCR VN168 PRO - Xử lý 200+ ảnh</title>
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
-        :root { 
-            --primary: #ff5c5c; 
-            --secondary: #27ae60; 
-            --bg: #0f0f0f; 
-            --text: #e0e0e0;
-            --color-lon: yellow; 
-            --color-nho: #00e5ff; 
-        }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
-        .container { max-width: 900px; margin: auto; background: #1a1a1a; padding: 20px; border-radius: 10px; border: 1px solid #333; }
-        h2 { text-align: center; color: var(--primary); }
-        
-        /* Box upload */
-        .upload-box { border: 2px dashed #444; padding: 30px; text-align: center; cursor: pointer; margin-bottom: 10px; background: #222; border-radius: 8px; }
-        .upload-box:hover { border-color: var(--primary); background: #2a2a2a; }
-        #file-count { color: var(--secondary); font-weight: bold; margin-bottom: 15px; text-align: center; display: block; }
-
-        .progress { height: 12px; background: #333; border-radius: 6px; margin: 15px 0; display: none; overflow: hidden; }
-        .progress-bar { height: 100%; background: linear-gradient(90deg, #ff5c5c, #ff9494); width: 0%; transition: width 0.3s; }
-        
-        .btns { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; flex-wrap: wrap; }
-        button { padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        button:disabled { background: #333 !important; color: #666; cursor: not-allowed; }
-        
-        .btn-scan { background: #f1c40f; color: #000; } /* Nút quét */
-        .btn-dl { background: var(--secondary); color: white; }
+        :root { --primary: #ff5c5c; --secondary: #27ae60; --bg: #0f0f0f; --text: #e0e0e0; --color-lon: yellow; --color-nho: #00e5ff; }
+        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
+        .container { max-width: 800px; margin: auto; background: #1a1a1a; padding: 15px; border-radius: 10px; }
+        h2 { text-align: center; color: var(--primary); margin-top: 5px; }
+        .upload-box { border: 2px dashed #444; padding: 20px; text-align: center; cursor: pointer; background: #222; border-radius: 8px; }
+        #file-count { color: #f1c40f; font-weight: bold; display: block; text-align: center; margin: 10px 0; }
+        .progress { height: 15px; background: #333; border-radius: 8px; margin: 10px 0; display: none; overflow: hidden; }
+        .progress-bar { height: 100%; background: var(--secondary); width: 0%; transition: width 0.1s; }
+        .btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 15px; }
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .btn-scan { background: #e74c3c; color: white; }
+        .btn-dl { background: #27ae60; color: white; }
         .btn-img { background: #3498db; color: white; }
-        
-        /* Giao diện hiển thị số */
-        #tableCaptureArea { background: #1a1a1a; padding: 15px; border-radius: 8px; margin-top: 10px; }
+        #tableCaptureArea { background: #000; padding: 10px; border-radius: 5px; }
         #txtHorizontal { 
-            width: 100%; min-height: 60px; padding: 15px; border: 1px solid #333; border-radius: 5px; 
-            font-family: monospace; font-size: 24px; box-sizing: border-box; background: #000;
-            color: #00ff41; font-weight: bold; white-space: pre-wrap; word-wrap: break-word; line-height: 1.4;
+            width: 100%; min-height: 80px; padding: 10px; background: #000; color: #00ff41; 
+            font-family: monospace; font-size: 20px; font-weight: bold; border: 1px solid #333;
+            white-space: pre-wrap; word-wrap: break-word; line-height: 1.4;
         }
-
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th { background: var(--primary); color: white; padding: 12px; }
-        td { padding: 10px; text-align: center; border-bottom: 1px solid #333; font-family: monospace; font-size: 18px; }
-        .txt-lon { color: var(--color-lon) !important; font-weight: bold; }
-        .txt-nho { color: var(--color-nho) !important; font-weight: bold; }
-        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { background: var(--primary); color: white; padding: 8px; font-size: 14px; }
+        td { padding: 6px; text-align: center; border-bottom: 1px solid #333; font-family: monospace; font-size: 16px; }
+        .txt-lon { color: var(--color-lon); font-weight: bold; }
+        .txt-nho { color: var(--color-nho); font-weight: bold; }
         #canvas-helper { display: none; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>Hệ Thống Quét VN168 - Cộng Dồn Ảnh</h2>
+    <h2>VN168 - QUÉT SỐ LƯỢNG LỚN</h2>
     
     <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-        <div style="font-size: 18px;">+ Chọn thêm ảnh</div>
-        <div style="font-size: 12px; color: #777; margin-top: 5px;">(Có thể chọn nhiều lần, ảnh sẽ tự cộng dồn)</div>
+        <b>+ Nhấn để thêm ảnh</b>
         <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
     </div>
 
-    <span id="file-count">Chưa có ảnh nào được chọn</span>
+    <span id="file-count">Chưa có ảnh nào</span>
 
     <div class="btns">
-        <button id="scanBtn" class="btn-scan" disabled>Bắt đầu quét tất cả</button>
-        <button id="downloadBtn" class="btn-dl" disabled>Tải .txt</button>
-        <button id="exportImgBtn" class="btn-img" disabled>Xuất ảnh HD</button>
-        <button onclick="location.reload()" style="background:#444; color:white;">Xóa hết làm lại</button>
+        <button id="scanBtn" class="btn-scan" disabled>BẮT ĐẦU QUÉT</button>
+        <button id="downloadBtn" class="btn-dl" disabled>TẢI FILE .TXT</button>
+        <button id="exportImgBtn" class="btn-img" disabled>XUẤT ẢNH HD</button>
+        <button onclick="location.reload()" style="background:#555; color:white;">XÓA HẾT</button>
     </div>
 
     <div class="progress" id="progressBox"><div class="progress-bar" id="progressBar"></div></div>
-    <div id="status" style="text-align:center; margin-bottom:10px; font-weight: bold;"></div>
+    <div id="status" style="text-align:center; margin-bottom:10px; font-size: 14px;"></div>
 
     <div id="tableCaptureArea">
-        <div id="txtHorizontal">Kết quả sẽ hiển thị tại đây...</div>
+        <div id="txtHorizontal">Dãy số...</div>
         <table>
             <thead>
-                <tr>
-                    <th>Kỳ xổ</th>
-                    <th>Con số</th>
-                    <th>Lớn nhỏ</th>
-                </tr>
+                <tr><th>Kỳ xổ</th><th>Số</th><th>Lớn Nhỏ</th></tr>
             </thead>
             <tbody id="resultBody"></tbody>
         </table>
@@ -106,71 +83,74 @@
     const canvas = document.getElementById('canvas-helper');
     const ctx = canvas.getContext('2d');
 
-    let allFiles = []; // Mảng lưu trữ cộng dồn tất cả file ảnh
+    let allFiles = []; 
     let finalData = [];
 
-    // Lắng nghe sự kiện chọn file (Cộng dồn)
     fileInput.addEventListener('change', (e) => {
         const newFiles = Array.from(e.target.files);
         if (newFiles.length > 0) {
-            allFiles = allFiles.concat(newFiles); // Cộng dồn file mới vào mảng cũ
-            fileCountText.innerText = ` Đã chọn: ${allFiles.length} ảnh`;
+            allFiles = allFiles.concat(newFiles);
+            fileCountText.innerText = `Đã tích lũy: ${allFiles.length} ảnh`;
             scanBtn.disabled = false;
-            // Reset input để có thể chọn lại cùng 1 file nếu muốn
             fileInput.value = ""; 
         }
     });
 
-    // Hàm bắt đầu quét
     scanBtn.addEventListener('click', async () => {
         if (allFiles.length === 0) return;
 
-        // Trạng thái UI khi quét
         scanBtn.disabled = true;
-        downloadBtn.disabled = true;
-        exportImgBtn.disabled = true;
         progressBox.style.display = 'block';
-        resultBody.innerHTML = "";
         finalData = [];
+        resultBody.innerHTML = "";
 
-        const worker = await Tesseract.createWorker();
-        await worker.loadLanguage('eng+vie');
-        await worker.initialize('eng+vie');
+        // Tạo Worker với cấu hình tối ưu bộ nhớ
+        const worker = await Tesseract.createWorker({
+            cacheMethod: 'none',
+            logger: m => { if(m.status === 'recognizing') console.log(m.progress); }
+        });
+        await worker.loadLanguage('eng');
+        await worker.initialize('eng');
 
         for (let i = 0; i < allFiles.length; i++) {
-            status.innerText = `Đang xử lý ảnh ${i + 1}/${allFiles.length}...`;
+            status.innerText = `Đang xử lý ${i + 1}/${allFiles.length}...`;
             progressBar.style.width = ((i + 1) / allFiles.length) * 100 + '%';
 
-            const processedImage = await preprocessImage(allFiles[i]);
-            const { data: { text } } = await worker.recognize(processedImage);
-            parseText(text);
+            try {
+                const imgData = await preprocessImage(allFiles[i]);
+                const { data: { text } } = await worker.recognize(imgData);
+                parseText(text);
+                // Giải phóng bộ nhớ ảnh sau khi quét
+                URL.revokeObjectURL(imgData); 
+            } catch (err) {
+                console.error("Lỗi tại ảnh số " + i);
+            }
         }
 
         await worker.terminate();
-
-        // Sắp xếp dữ liệu theo kỳ xổ mới nhất lên đầu
         finalData.sort((a, b) => b.kyXo.localeCompare(a.kyXo));
-        
         renderTable(); 
         updateHorizontalData(); 
 
-        status.innerHTML = `<span style="color:#27ae60">✅ Hoàn tất quét ${finalData.length} kỳ từ ${allFiles.length} ảnh!</span>`;
+        status.innerHTML = `<b style="color:#2ecc71">Xong! Tổng: ${finalData.length} kỳ</b>`;
         downloadBtn.disabled = false;
         exportImgBtn.disabled = false;
-        progressBox.style.display = 'none';
     });
 
     function preprocessImage(file) {
         return new Promise((resolve) => {
             const img = new Image();
+            const objectUrl = URL.createObjectURL(file);
             img.onload = () => {
                 canvas.width = img.width;
                 canvas.height = img.height;
-                ctx.filter = 'grayscale(130%) contrast(110%)';
+                ctx.filter = 'grayscale(1) contrast(1.2)';
                 ctx.drawImage(img, 0, 0);
-                resolve(canvas.toDataURL('image/jpeg', 0.8));
+                const data = canvas.toDataURL('image/jpeg', 0.7);
+                URL.revokeObjectURL(objectUrl); // Xóa object URL gốc
+                resolve(data);
             };
-            img.src = URL.createObjectURL(file);
+            img.src = objectUrl;
         });
     }
 
@@ -194,47 +174,48 @@
     }
 
     function renderTable() {
-        resultBody.innerHTML = "";
+        let html = "";
         finalData.forEach(d => {
             const colorClass = (d.lonNho === "Lớn") ? "txt-lon" : "txt-nho";
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="color:#888">${d.kyXo}</td>
-                <td class="${colorClass}">${d.conSo}</td>
-                <td class="${colorClass}">${d.lonNho}</td>
-            `;
-            resultBody.appendChild(tr);
+            html += `<tr><td>${d.kyXo}</td><td class="${colorClass}">${d.conSo}</td><td class="${colorClass}">${d.lonNho}</td></tr>`;
         });
+        resultBody.innerHTML = html;
     }
 
     function updateHorizontalData() {
         const sortedData = [...finalData].sort((a, b) => a.kyXo.localeCompare(b.kyXo));
-        const rowData = sortedData.map(item => item.conSo).join(" ");
-        txtHorizontal.innerText = rowData;
+        txtHorizontal.innerText = sortedData.map(item => item.conSo).join(" ");
     }
 
+    // TẢI FILE TXT (Sử dụng cách an toàn hơn cho dữ liệu lớn)
     downloadBtn.addEventListener('click', () => {
         const content = txtHorizontal.innerText;
-        const blob = new Blob([content], {type: 'text/plain'});
+        const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `day_so_tong_hop_${Date.now()}.txt`;
+        a.href = url;
+        a.download = `ket_qua_${Date.now()}.txt`;
+        document.body.appendChild(a);
         a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 0);
     });
 
+    // XUẤT ẢNH (Dành cho vùng kết quả)
     exportImgBtn.addEventListener('click', () => {
-        const captureArea = document.getElementById('tableCaptureArea');
-        status.innerText = "Đang tạo ảnh chất lượng cao...";
-        html2canvas(captureArea, {
-            scale: 3, 
-            useCORS: true,
-            backgroundColor: "#1a1a1a",
+        status.innerText = "Đang vẽ ảnh (với 200+ dòng có thể mất vài giây)...";
+        html2canvas(document.getElementById('tableCaptureArea'), {
+            scale: 2, // Giảm nhẹ scale từ 3 xuống 2 để tránh crash trình duyệt khi bảng quá dài
+            backgroundColor: "#000",
+            useCORS: true
         }).then(canvas => {
             const link = document.createElement('a');
-            link.download = `VN168_Export_${Date.now()}.png`;
+            link.download = `VN168_Export.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-            status.innerText = "✅ Đã xuất ảnh!";
+            status.innerText = "✅ Xuất ảnh thành công!";
         });
     });
 </script>

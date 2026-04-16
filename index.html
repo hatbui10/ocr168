@@ -9,7 +9,7 @@
     <style>
         :root { --primary: #ff5c5c; --secondary: #27ae60; --bg: #0f0f0f; --text: #e0e0e0; --color-lon: yellow; --color-nho: #00e5ff; }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
-        .container { max-width: 800px; margin: auto; background: #1a1a1a; padding: 15px; border-radius: 10px; }
+        .container { max-width: 1000px; margin: auto; background: #1a1a1a; padding: 15px; border-radius: 10px; }
         h2 { text-align: center; color: var(--primary); margin-top: 5px; }
         .upload-box { border: 2px dashed #444; padding: 20px; text-align: center; cursor: pointer; background: #222; border-radius: 8px; }
         #file-count { color: #f1c40f; font-weight: bold; display: block; text-align: center; margin: 10px 0; }
@@ -20,6 +20,8 @@
         .btn-scan { background: #e74c3c; color: white; }
         .btn-dl { background: #27ae60; color: white; }
         .btn-img { background: #3498db; color: white; }
+        .btn-pdf { background: #9b59b6; color: white; } /* Màu nút PDF */
+        
         #tableCaptureArea { background: #000; padding: 10px; border-radius: 5px; }
         #txtHorizontal { 
             width: 100%; min-height: 80px; padding: 10px; background: #000; color: #00ff41; 
@@ -32,6 +34,18 @@
         .txt-lon { color: var(--color-lon); font-weight: bold; }
         .txt-nho { color: var(--color-nho); font-weight: bold; }
         #canvas-helper { display: none; }
+
+        /* CSS dành riêng cho xuất PDF/In để giữ màu sắc và ẩn các thành phần thừa */
+        @media print {
+            body { background: #000 !important; }
+            .container { background: #000 !important; max-width: 100% !important; border: none !important; }
+            .upload-box, .btns, .progress, #status, h2 { display: none !important; }
+            #tableCaptureArea { background: #000 !important; }
+            #txtHorizontal { border: 1px solid #fff !important; color: #00ff41 !important; }
+            td, th { border-bottom: 1px solid #444 !important; color: #fff !important; }
+            .txt-lon { color: yellow !important; }
+            .txt-nho { color: #00e5ff !important; }
+        }
     </style>
 </head>
 <body>
@@ -50,7 +64,7 @@
         <button id="scanBtn" class="btn-scan" disabled>BẮT ĐẦU QUÉT</button>
         <button id="downloadBtn" class="btn-dl" disabled>TẢI FILE .TXT</button>
         <button id="exportImgBtn" class="btn-img" disabled>XUẤT ẢNH HD</button>
-        <button onclick="location.reload()" style="background:#555; color:white;">XÓA HẾT</button>
+        <button id="pdfBtn" class="btn-pdf" disabled>XUẤT FILE PDF</button> <button onclick="location.reload()" style="background:#555; color:white;">XÓA HẾT</button>
     </div>
 
     <div class="progress" id="progressBox"><div class="progress-bar" id="progressBar"></div></div>
@@ -80,6 +94,7 @@
     const status = document.getElementById('status');
     const downloadBtn = document.getElementById('downloadBtn');
     const exportImgBtn = document.getElementById('exportImgBtn');
+    const pdfBtn = document.getElementById('pdfBtn'); // Biến mới
     const canvas = document.getElementById('canvas-helper');
     const ctx = canvas.getContext('2d');
 
@@ -104,7 +119,6 @@
         finalData = [];
         resultBody.innerHTML = "";
 
-        // Tạo Worker với cấu hình tối ưu bộ nhớ
         const worker = await Tesseract.createWorker({
             cacheMethod: 'none',
             logger: m => { if(m.status === 'recognizing') console.log(m.progress); }
@@ -120,7 +134,6 @@
                 const imgData = await preprocessImage(allFiles[i]);
                 const { data: { text } } = await worker.recognize(imgData);
                 parseText(text);
-                // Giải phóng bộ nhớ ảnh sau khi quét
                 URL.revokeObjectURL(imgData); 
             } catch (err) {
                 console.error("Lỗi tại ảnh số " + i);
@@ -135,6 +148,7 @@
         status.innerHTML = `<b style="color:#2ecc71">Xong! Tổng: ${finalData.length} kỳ</b>`;
         downloadBtn.disabled = false;
         exportImgBtn.disabled = false;
+        pdfBtn.disabled = false; // Bật nút PDF
     });
 
     function preprocessImage(file) {
@@ -147,7 +161,7 @@
                 ctx.filter = 'grayscale(1) contrast(1.2)';
                 ctx.drawImage(img, 0, 0);
                 const data = canvas.toDataURL('image/jpeg', 0.7);
-                URL.revokeObjectURL(objectUrl); // Xóa object URL gốc
+                URL.revokeObjectURL(objectUrl); 
                 resolve(data);
             };
             img.src = objectUrl;
@@ -187,7 +201,6 @@
         txtHorizontal.innerText = sortedData.map(item => item.conSo).join(" ");
     }
 
-    // TẢI FILE TXT (Sử dụng cách an toàn hơn cho dữ liệu lớn)
     downloadBtn.addEventListener('click', () => {
         const content = txtHorizontal.innerText;
         const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
@@ -203,11 +216,10 @@
         }, 0);
     });
 
-    // XUẤT ẢNH (Dành cho vùng kết quả)
     exportImgBtn.addEventListener('click', () => {
-        status.innerText = "Đang vẽ ảnh (với 200+ dòng có thể mất vài giây)...";
+        status.innerText = "Đang vẽ ảnh...";
         html2canvas(document.getElementById('tableCaptureArea'), {
-            scale: 2, // Giảm nhẹ scale từ 3 xuống 2 để tránh crash trình duyệt khi bảng quá dài
+            scale: 2,
             backgroundColor: "#000",
             useCORS: true
         }).then(canvas => {
@@ -217,6 +229,11 @@
             link.click();
             status.innerText = "✅ Xuất ảnh thành công!";
         });
+    });
+
+    // CHỨC NĂNG XUẤT PDF (SỬ DỤNG PRINT)
+    pdfBtn.addEventListener('click', () => {
+        window.print();
     });
 </script>
 </body>

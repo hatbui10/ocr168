@@ -11,7 +11,16 @@
         body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 10px; margin: 0; }
         .container { max-width: 1000px; margin: auto; background: #1a1a1a; padding: 15px; border-radius: 10px; }
         h2 { text-align: center; color: var(--primary); margin-top: 5px; }
-        .upload-box { border: 2px dashed #444; padding: 20px; text-align: center; cursor: pointer; background: #222; border-radius: 8px; }
+        
+        /* CSS cho hàng chọn File/Thư mục */
+        .upload-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .upload-box { 
+            flex: 1; border: 2px dashed #444; padding: 20px; text-align: center; 
+            cursor: pointer; background: #222; border-radius: 8px; font-size: 14px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .upload-box:hover { border-color: var(--primary); background: #2a2a2a; }
+        
         #file-count { color: #f1c40f; font-weight: bold; display: block; text-align: center; margin: 10px 0; }
         .progress { height: 15px; background: #333; border-radius: 8px; margin: 10px 0; display: none; overflow: hidden; }
         .progress-bar { height: 100%; background: var(--secondary); width: 0%; transition: width 0.1s; }
@@ -20,7 +29,7 @@
         .btn-scan { background: #e74c3c; color: white; }
         .btn-dl { background: #27ae60; color: white; }
         .btn-img { background: #3498db; color: white; }
-        .btn-pdf { background: #9b59b6; color: white; } /* Màu nút PDF */
+        .btn-pdf { background: #9b59b6; color: white; }
         
         #tableCaptureArea { background: #000; padding: 10px; border-radius: 5px; }
         #txtHorizontal { 
@@ -35,11 +44,10 @@
         .txt-nho { color: var(--color-nho); font-weight: bold; }
         #canvas-helper { display: none; }
 
-        /* CSS dành riêng cho xuất PDF/In để giữ màu sắc và ẩn các thành phần thừa */
         @media print {
             body { background: #000 !important; }
             .container { background: #000 !important; max-width: 100% !important; border: none !important; }
-            .upload-box, .btns, .progress, #status, h2 { display: none !important; }
+            .upload-row, .btns, .progress, #status, h2 { display: none !important; }
             #tableCaptureArea { background: #000 !important; }
             #txtHorizontal { border: 1px solid #fff !important; color: #00ff41 !important; }
             td, th { border-bottom: 1px solid #444 !important; color: #fff !important; }
@@ -53,9 +61,17 @@
 <div class="container">
     <h2>VN168 - QUÉT SỐ LƯỢNG LỚN</h2>
     
-    <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-        <b>+ Nhấn để thêm ảnh</b>
-        <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+    <div class="upload-row">
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <b>🖼️ CHỌN ẢNH</b>
+            <small>(Nhiều file lẻ)</small>
+            <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+        </div>
+        <div class="upload-box" onclick="document.getElementById('folderInput').click()">
+            <b>📁 CHỌN THƯ MỤC</b>
+            <small>(Quét cả folder)</small>
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;">
+        </div>
     </div>
 
     <span id="file-count">Chưa có ảnh nào</span>
@@ -64,7 +80,8 @@
         <button id="scanBtn" class="btn-scan" disabled>BẮT ĐẦU QUÉT</button>
         <button id="downloadBtn" class="btn-dl" disabled>TẢI FILE .TXT</button>
         <button id="exportImgBtn" class="btn-img" disabled>XUẤT ẢNH HD</button>
-        <button id="pdfBtn" class="btn-pdf" disabled>XUẤT FILE PDF</button> <button onclick="location.reload()" style="background:#555; color:white;">XÓA HẾT</button>
+        <button id="pdfBtn" class="btn-pdf" disabled>XUẤT FILE PDF</button> 
+        <button onclick="location.reload()" style="background:#555; color:white;">XÓA HẾT</button>
     </div>
 
     <div class="progress" id="progressBox"><div class="progress-bar" id="progressBar"></div></div>
@@ -85,6 +102,7 @@
 
 <script>
     const fileInput = document.getElementById('fileInput');
+    const folderInput = document.getElementById('folderInput');
     const fileCountText = document.getElementById('file-count');
     const scanBtn = document.getElementById('scanBtn');
     const resultBody = document.getElementById('resultBody');
@@ -94,22 +112,27 @@
     const status = document.getElementById('status');
     const downloadBtn = document.getElementById('downloadBtn');
     const exportImgBtn = document.getElementById('exportImgBtn');
-    const pdfBtn = document.getElementById('pdfBtn'); // Biến mới
+    const pdfBtn = document.getElementById('pdfBtn');
     const canvas = document.getElementById('canvas-helper');
     const ctx = canvas.getContext('2d');
 
     let allFiles = []; 
     let finalData = [];
 
-    fileInput.addEventListener('change', (e) => {
-        const newFiles = Array.from(e.target.files);
+    // Xử lý khi chọn File lẻ
+    fileInput.addEventListener('change', handleFiles);
+    // Xử lý khi chọn Thư mục
+    folderInput.addEventListener('change', handleFiles);
+
+    function handleFiles(e) {
+        const newFiles = Array.from(e.target.files).filter(file => file.type.startsWith('image/'));
         if (newFiles.length > 0) {
             allFiles = allFiles.concat(newFiles);
             fileCountText.innerText = `Đã tích lũy: ${allFiles.length} ảnh`;
             scanBtn.disabled = false;
-            fileInput.value = ""; 
         }
-    });
+        e.target.value = ""; // Reset để có thể chọn lại cùng thư mục nếu cần
+    }
 
     scanBtn.addEventListener('click', async () => {
         if (allFiles.length === 0) return;
@@ -148,7 +171,7 @@
         status.innerHTML = `<b style="color:#2ecc71">Xong! Tổng: ${finalData.length} kỳ</b>`;
         downloadBtn.disabled = false;
         exportImgBtn.disabled = false;
-        pdfBtn.disabled = false; // Bật nút PDF
+        pdfBtn.disabled = false;
     });
 
     function preprocessImage(file) {
@@ -201,32 +224,24 @@
         txtHorizontal.innerText = sortedData.map(item => item.conSo).join(" ");
     }
 
-        downloadBtn.addEventListener('click', () => {
-        // 1. Lấy nội dung dãy số
+    downloadBtn.addEventListener('click', () => {
         const content = txtHorizontal.innerText;
-        
-        // 2. Đếm số lượng chữ số (loại bỏ khoảng trắng)
-        // re-check: content.replace(/\s/g, '') sẽ chỉ còn lại các con số
+        // Đếm số lượng chữ số thực tế (bỏ qua dấu cách)
         const digitCount = content.replace(/\s/g, '').length;
         
-        // 3. Tạo Blob và tải file với tên mới theo yêu cầu
         const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        
         a.href = url;
-        // Đặt tên file dạng: vn168 - [số lượng].txt
+        // Tên file dạng: vn168 - [số chữ số].txt
         a.download = `vn168 - ${digitCount}.txt`;
-        
         document.body.appendChild(a);
         a.click();
-        
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 0);
     });
-
 
     exportImgBtn.addEventListener('click', () => {
         status.innerText = "Đang vẽ ảnh...";
@@ -243,7 +258,6 @@
         });
     });
 
-    // CHỨC NĂNG XUẤT PDF (SỬ DỤNG PRINT)
     pdfBtn.addEventListener('click', () => {
         window.print();
     });

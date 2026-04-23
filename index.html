@@ -201,20 +201,32 @@
         txtHorizontal.innerText = sortedData.map(item => item.conSo).join(" ");
     }
 
-    downloadBtn.addEventListener('click', () => {
+        downloadBtn.addEventListener('click', () => {
+        // 1. Lấy nội dung dãy số
         const content = txtHorizontal.innerText;
+        
+        // 2. Đếm số lượng chữ số (loại bỏ khoảng trắng)
+        // re-check: content.replace(/\s/g, '') sẽ chỉ còn lại các con số
+        const digitCount = content.replace(/\s/g, '').length;
+        
+        // 3. Tạo Blob và tải file với tên mới theo yêu cầu
         const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
+        
         a.href = url;
-        a.download = `ket_qua_${Date.now()}.txt`;
+        // Đặt tên file dạng: vn168 - [số lượng].txt
+        a.download = `vn168 - ${digitCount}.txt`;
+        
         document.body.appendChild(a);
         a.click();
+        
         setTimeout(() => {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         }, 0);
     });
+
 
     exportImgBtn.addEventListener('click', () => {
         status.innerText = "Đang vẽ ảnh...";
